@@ -32,7 +32,7 @@ def create_matrix(data, prices):
 
             if (    today_val <= -2.0 \
                 and yester_val >= -2.0 \
-                and data['SPY'][timestamps[i]] >= 1.0):
+                and data['SPY'][timestamps[i]] >= 1.3):
                 trades.append({ "Year": int(str(timestamps[i])[:10].split('-')[0]),
                                 "Month": int(str(timestamps[i])[:10].split('-')[1]),
                                 "Day": int(str(timestamps[i])[:10].split('-')[2]),
@@ -76,7 +76,6 @@ def setup(s_date, e_date, lookback):
 
 def read_data(timestamps):
     data_obj = da.DataAccess('Yahoo')
-
     symbols = data_obj.get_symbols_from_list("sp5002012")
     symbols.append('SPY')
     keys = ['close']
