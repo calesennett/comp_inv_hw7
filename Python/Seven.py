@@ -5,25 +5,25 @@ import QSTK.qstkstudy.EventProfiler as ep
 import datetime as dt
 import numpy as np
 import copy
+import csv
 import pandas as pd
 from itertools import *
 import matplotlib.pyplot as plt
 
 def main():
     s_date = dt.datetime(2008, 1, 1)
-    e_date = dt.datetime(2010, 1, 1)
+    e_date = dt.datetime(2009, 12, 31)
     lookback = 20
     print "Reading data..."
     data, symbols, timestamps = setup(s_date, e_date, lookback)
     indicator_bol = bol_band(data, symbols, timestamps, lookback, s_date)
     event_matrix = create_matrix(indicator_bol, data)
-    ep.eventprofiler(event_matrix, data, i_lookback=20, i_lookforward=20, s_filename="SP500 BOL.pdf")
 
 def create_matrix(data, prices):
     timestamps = data.index
     syms = data.columns
-    events = copy.deepcopy(prices['close'])
-    events = events * np.NAN
+
+    trades = []
 
     for sym in syms:
         for i in range(1, len(timestamps)):
@@ -33,8 +33,29 @@ def create_matrix(data, prices):
             if (    today_val <= -2.0 \
                 and yester_val >= -2.0 \
                 and data['SPY'][timestamps[i]] >= 1.0):
-                events[sym][timestamps[i]] = 1
-    return events
+                trades.append({ "Year": int(str(timestamps[i])[:10].split('-')[0]),
+                                "Month": int(str(timestamps[i])[:10].split('-')[1]),
+                                "Day": int(str(timestamps[i])[:10].split('-')[2]),
+                                "Sym": sym, "Type": "Buy", "Shares": 100})
+                if (i >= len(timestamps) - 5):
+                    trades.append({ "Year": int(str(timestamps[len(timestamps)-1])[:10].split('-')[0]),
+                                    "Month": int(str(timestamps[len(timestamps)-1])[:10].split('-')[1]),
+                                    "Day": int(str(timestamps[len(timestamps)-1])[:10].split('-')[2]),
+                                    "Sym": sym, "Type": "Sell", "Shares": 100})
+                else:
+                    trades.append({ "Year": int(str(timestamps[i+5])[:10].split('-')[0]),
+                                    "Month": int(str(timestamps[i+5])[:10].split('-')[1]),
+                                    "Day": int(str(timestamps[i+5])[:10].split('-')[2]),
+                                    "Sym": sym, "Type": "Sell", "Shares": 100})
+    output_trades(trades)
+
+def output_trades(trades):
+    header = ["Year", "Month", "Day", "Sym", "Type", "Shares"]
+    trades_file = open('trades.csv', 'wb')
+    csv_writer = csv.DictWriter(trades_file, delimiter=',', fieldnames=header)
+    csv_writer.writerow(dict((fn,fn) for fn in header))
+    for row in trades:
+         csv_writer.writerow(row)
 
 def bol_band(data, syms, timestamps, lookback, s_date):
     indicator_bol_vals = pd.DataFrame(index=timestamps, columns=syms).truncate(before=s_date)
